@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:safego/services/secure_storage_service.dart'; // For token storage
+import 'package:safego/screens/signup_page.dart'; // For navigation to login page
 
 class DashboardScreen extends StatelessWidget {
   @override
@@ -133,6 +135,25 @@ class DashboardScreen extends StatelessWidget {
                   ],
                 ),
               ],
+            ),
+          ),
+
+          // Logout Button (Top Right Corner)
+          Positioned(
+            top: 80,
+            right: 10,
+            child: IconButton(
+              icon: Icon(Icons.logout, color: Colors.white),
+              onPressed: () async {
+                // Clear the token from secure storage
+                await SecureStorageService.clear();
+                // Navigate to login page
+               Navigator.pushAndRemoveUntil(
+                context,
+                MaterialPageRoute(builder: (context) => SignupPage()),
+                (Route<dynamic> route) => false,
+              );
+              },
             ),
           ),
         ],

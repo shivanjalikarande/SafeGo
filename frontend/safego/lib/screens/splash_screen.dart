@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'dart:async';
 import './dashboard_screen.dart';
 // import '../supabase_client.dart';
+import './signup_page.dart'; // import your login screen
+import '../services/auth_service.dart'; // auth session logic
 
 class SplashScreen extends StatefulWidget {
   @override
@@ -12,12 +14,34 @@ class _SplashScreenState extends State<SplashScreen> {
   @override
   void initState() {
     super.initState();
-    Timer(Duration(seconds: 15), () {
+    _checkSessionAndNavigate();
+    // Timer(Duration(seconds: 15), () {
+    //   Navigator.pushReplacement(
+    //     context,
+    //     MaterialPageRoute(builder: (context) => DashboardScreen()),
+    //   );
+    // });
+  }
+
+  Future<void> _checkSessionAndNavigate() async {
+    // Wait 2 seconds just to show splash screen animation/logo
+    await Future.delayed(Duration(seconds: 2));
+
+    // Check and refresh session using AuthService
+    bool isLoggedIn = await AuthService.checkAndRefreshSession();
+
+    // Navigate based on login state
+    if (isLoggedIn) {
       Navigator.pushReplacement(
         context,
         MaterialPageRoute(builder: (context) => DashboardScreen()),
       );
-    });
+    } else {
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (context) => SignupPage()),
+      );
+    }
   }
 
   @override
@@ -46,6 +70,8 @@ class _SplashScreenState extends State<SplashScreen> {
                 "Your safety companion while you travel",
                 style: TextStyle(fontSize: 15, color: Colors.white),
               ),
+              SizedBox(height: 30),
+              CircularProgressIndicator(color: Colors.white), // loading spinner
             ],
           ),
         ),

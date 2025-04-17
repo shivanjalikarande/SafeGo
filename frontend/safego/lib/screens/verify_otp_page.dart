@@ -3,6 +3,7 @@ import 'package:supabase/supabase.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import '../supabase_client.dart';
+import '../services/secure_storage_service.dart'; // import your secure storage service
 
 class VerifyOtpPage extends StatefulWidget {
   const VerifyOtpPage({super.key});
@@ -28,13 +29,15 @@ class _VerifyOtpPageState extends State<VerifyOtpPage> {
       );
 
       final user = res.user;
-      if (user != null) {
+      final session = res.session;
+
+      if (user != null && session != null) {
         if (!isLogin) {
           // Only insert into DB during signup
           final response = await http.post(
             Uri.parse(
-              'http://<your_pc_ip_address>:5000/auth/register',
-            ), //if using emulator, otherwise use <localhost>
+              'http://localhost:5000/auth/register',
+            ), // If using emulator, otherwise use <localhost>
             headers: {'Content-Type': 'application/json'},
             body: jsonEncode({
               'id': user.id,
@@ -49,6 +52,10 @@ class _VerifyOtpPageState extends State<VerifyOtpPage> {
           }
         }
 
+        // Store the JWT token in Secure Storage
+        final jwtToken = session.accessToken;
+        await SecureStorageService.write('jwt', jwtToken); // This is where the token is saved
+        
         Navigator.pushReplacementNamed(context, '/dashboard');
       } else {
         ScaffoldMessenger.of(
