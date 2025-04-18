@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:safego/services/secure_storage_service.dart'; // For token storage
 import 'package:safego/screens/signup_page.dart'; // For navigation to login page
+import '../supabase_client.dart';
+import 'user_profile_page.dart';
 
 class DashboardScreen extends StatelessWidget {
   @override
@@ -120,7 +122,17 @@ class DashboardScreen extends StatelessWidget {
                     IconButton(
                       icon: Icon(Icons.settings, color: Colors.white),
                       onPressed: () {
-                        Navigator.pushNamed(context, '/user-profile');
+                        // Navigator.pushNamed(context, '/user-profile');
+                        if (supabase.auth.currentUser != null) {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => UserProfilePage(),
+                            ),
+                          );
+                        } else {
+                          Navigator.pushNamed(context, '/login');
+                        }
                       },
                     ),
                     Icon(Icons.notifications, color: Colors.white),
@@ -172,11 +184,11 @@ class DashboardScreen extends StatelessWidget {
                 // Clear the token from secure storage
                 await SecureStorageService.clear();
                 // Navigate to login page
-               Navigator.pushAndRemoveUntil(
-                context,
-                MaterialPageRoute(builder: (context) => SignupPage()),
-                (Route<dynamic> route) => false,
-              );
+                Navigator.pushAndRemoveUntil(
+                  context,
+                  MaterialPageRoute(builder: (context) => SignupPage()),
+                  (Route<dynamic> route) => false,
+                );
               },
             ),
           ),

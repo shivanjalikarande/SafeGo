@@ -36,7 +36,7 @@ class _VerifyOtpPageState extends State<VerifyOtpPage> {
           // Only insert into DB during signup
           final response = await http.post(
             Uri.parse(
-              'http://localhost:5000/auth/register',
+              'http://192.168.58...:5000/auth/register',
             ), // If using emulator, otherwise use <localhost>
             headers: {'Content-Type': 'application/json'},
             body: jsonEncode({
@@ -53,8 +53,11 @@ class _VerifyOtpPageState extends State<VerifyOtpPage> {
 
         // Store the JWT token in Secure Storage
         final jwtToken = session.accessToken;
-        await SecureStorageService.write('jwt', jwtToken); // This is where the token is saved
-        
+        await SecureStorageService.write(
+          'jwt',
+          jwtToken,
+        ); // This is where the token is saved
+
         Navigator.pushReplacementNamed(context, '/dashboard');
       } else {
         ScaffoldMessenger.of(
