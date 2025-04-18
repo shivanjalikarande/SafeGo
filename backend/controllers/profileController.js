@@ -5,15 +5,28 @@ const getUserProfile = async (req, res) => {
     const { id } = req.params;
   
     try {
-      const { data, error } = await supabase
+      const { data: userProfile, error: userError} = await supabase
         .from('users')
         .select('name, phone, email') 
         .eq('id', id)
         .single(); 
   
-      if (error) return res.status(400).json({ error: error.message });
+      if (userError) return res.status(400).json({ error: userError.message });
+
+      const { data: authUser, error: authError } = await supabase.auth.admin.getUserById(id);
+
+      if (authError) return res.status(400).json({ error: authError.message });
   
-      res.status(200).json(data);
+      const profileImage = authUser?.user?.user_metadata?.profile_picture || null;
+      // console.log("User metadata: ",authUser.user.user_metadata);
+
+      // console.log("profile Image: ",profileImage);
+  
+      res.status(200).json({
+        ...userProfile,
+        profile_image: profileImage,
+      });
+  
     } catch (err) {
       console.error("Fetch Error:", err);
       res.status(500).json({ error: 'Internal server error' });
@@ -53,9 +66,26 @@ const getUserProfile = async (req, res) => {
       res.status(500).json({ error: 'Internal server error' });
     }
   };
+
+ const updateProfileImage =  async (req, res) => {
+    const { user_id, profile_picture } = req.body;
+    console.log("Inside image upload backend call");
+    try {
+      await supabase
+        .from('users')
+        .update({ profile_picture })
+        .eq("id", user_id);
+  
+      res.status(200).json({ message: "Image updated" });
+    } catch (error) {
+      res.status(500).json({ error: "Update failed" });
+    }
+  };
+  
   
 
   module.exports = {
     getUserProfile,
     updateUserProfile,
+    updateProfileImage
   };
