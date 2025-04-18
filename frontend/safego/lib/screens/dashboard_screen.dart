@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:safego/services/secure_storage_service.dart'; // For token storage
+import 'package:safego/screens/signup_page.dart'; // For navigation to login page
 
 class DashboardScreen extends StatelessWidget {
   @override
@@ -58,14 +60,22 @@ class DashboardScreen extends StatelessWidget {
                           print("Police button tapped");
                           // Navigate or handle Police tap
                         }),
-                        _buildServiceItem(Icons.local_hospital, "Ambulance", () {
-                          print("Ambulance button tapped");
-                          // Navigate or handle Ambulance tap
-                        }),
-                        _buildServiceItem(Icons.local_fire_department, "Fire", () {
-                          print("Fire button tapped");
-                          // Navigate or handle Fire tap
-                        }),
+                        _buildServiceItem(
+                          Icons.local_hospital,
+                          "Ambulance",
+                          () {
+                            print("Ambulance button tapped");
+                            // Navigate or handle Ambulance tap
+                          },
+                        ),
+                        _buildServiceItem(
+                          Icons.local_fire_department,
+                          "Fire",
+                          () {
+                            print("Fire button tapped");
+                            // Navigate or handle Fire tap
+                          },
+                        ),
                       ],
                     ),
                   ),
@@ -80,7 +90,11 @@ class DashboardScreen extends StatelessWidget {
                         borderRadius: BorderRadius.circular(20),
                       ),
                       child: Center(
-                        child: Icon(Icons.location_on, size: 40, color: Colors.blue),
+                        child: Icon(
+                          Icons.location_on,
+                          size: 40,
+                          color: Colors.blue,
+                        ),
                       ),
                     ),
                   ),
@@ -97,8 +111,21 @@ class DashboardScreen extends StatelessWidget {
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Text("Home", style: TextStyle(color: Colors.white, fontSize: 18)),
-                Icon(Icons.notifications, color: Colors.white),
+                Text(
+                  "Home",
+                  style: TextStyle(color: Colors.white, fontSize: 18),
+                ),
+                Row(
+                  children: [
+                    IconButton(
+                      icon: Icon(Icons.settings, color: Colors.white),
+                      onPressed: () {
+                        Navigator.pushNamed(context, '/user-profile');
+                      },
+                    ),
+                    Icon(Icons.notifications, color: Colors.white),
+                  ],
+                ),
               ],
             ),
           ),
@@ -109,7 +136,9 @@ class DashboardScreen extends StatelessWidget {
               children: [
                 CircleAvatar(
                   radius: 30,
-                  backgroundImage: AssetImage('assets/profile.png'), // Make sure this asset exists
+                  backgroundImage: AssetImage(
+                    'assets/profile.png',
+                  ), // Make sure this asset exists
                 ),
                 SizedBox(width: 12),
                 Column(
@@ -125,14 +154,30 @@ class DashboardScreen extends StatelessWidget {
                     ),
                     Text(
                       "123 Veit St. Springfield",
-                      style: TextStyle(
-                        color: Colors.white70,
-                        fontSize: 14,
-                      ),
+                      style: TextStyle(color: Colors.white70, fontSize: 14),
                     ),
                   ],
                 ),
               ],
+            ),
+          ),
+
+          // Logout Button (Top Right Corner)
+          Positioned(
+            top: 80,
+            right: 10,
+            child: IconButton(
+              icon: Icon(Icons.logout, color: Colors.white),
+              onPressed: () async {
+                // Clear the token from secure storage
+                await SecureStorageService.clear();
+                // Navigate to login page
+               Navigator.pushAndRemoveUntil(
+                context,
+                MaterialPageRoute(builder: (context) => SignupPage()),
+                (Route<dynamic> route) => false,
+              );
+              },
             ),
           ),
         ],

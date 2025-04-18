@@ -3,6 +3,8 @@ import 'package:safego/screens/dashboard_screen.dart';
 import './screens/signup_page.dart';
 import './screens/login_page.dart';
 import './screens/verify_otp_page.dart';
+import './screens/user_profile_page.dart';
+import './screens/splash_screen.dart';
 
 void main() => runApp(const MyApp());
 
@@ -13,13 +15,15 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
-      title: 'Supabase Auth',
-      initialRoute: '/signup',
+      title: 'SafeGo',
+      initialRoute: '/',
       routes: {
+        '/': (_) => SplashScreen(),
         '/signup': (_) => const SignupPage(),
         '/login': (_) => const LoginPage(),
         '/verify-otp': (_) => const VerifyOtpPage(),
         '/dashboard': (_) => DashboardScreen(),
+        '/user-profile': (context) => UserProfilePage(),
       },
     );
   }
