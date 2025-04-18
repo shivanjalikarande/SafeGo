@@ -27,9 +27,7 @@ class LoginPage extends StatelessWidget {
 
                 // 1. Check user existence in DB
                 final response = await http.post(
-                  Uri.parse(
-                    'http://localhost:5001/auth/check-user',
-                  ), //if using emulator, otherwise use <localhost>
+                  Uri.parse('http://localhost:5000/auth/check-user'),   //if using emulator, otherwise use <localhost>
                   headers: {'Content-Type': 'application/json'},
                   body: jsonEncode({'email': email}),
                 );
@@ -57,6 +55,11 @@ class LoginPage extends StatelessWidget {
                 );
               },
               child: const Text('Verify Email'),
+            ),
+            const SizedBox(height: 20),
+            GestureDetector(
+              onTap: () => Navigator.pushNamed(context, '/signup'),
+              child: const Text('Do not have an account? Create Account'),
             ),
           ],
         ),
