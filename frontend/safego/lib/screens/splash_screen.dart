@@ -25,7 +25,7 @@ class _SplashScreenState extends State<SplashScreen> {
 
   Future<void> _checkSessionAndNavigate() async {
     // Wait 2 seconds just to show splash screen animation/logo
-    await Future.delayed(Duration(seconds: 2));
+    await Future.delayed(Duration(seconds: 10));
 
     // Check and refresh session using AuthService
     bool isLoggedIn = await AuthService.checkAndRefreshSession();

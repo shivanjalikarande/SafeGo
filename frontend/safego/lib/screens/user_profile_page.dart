@@ -1,6 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
+import 'dart:io';
+import 'package:image_picker/image_picker.dart';
+import 'package:path/path.dart' as path;
+import 'package:mime/mime.dart';
+import 'package:supabase/supabase.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../supabase_client.dart';
 import 'save_contact_popup_page.dart';
@@ -20,6 +25,8 @@ class _UserProfilePageState extends State<UserProfilePage> {
   bool isEditing = false;
   Map<String, String> originalData = {};
   List<dynamic> contacts = [];
+  String? profileImageUrl;
+  bool isUploading = false;
 
   @override
   void initState() {
@@ -33,7 +40,7 @@ class _UserProfilePageState extends State<UserProfilePage> {
     if (user == null) return;
 
     final response = await http.get(
-      Uri.parse('http://localhost:5001/profile/${user.id}'),
+      Uri.parse('http://192.168.58..:5000/profile/${user.id}'),
     );
 
     if (response.statusCode == 200) {
@@ -41,6 +48,10 @@ class _UserProfilePageState extends State<UserProfilePage> {
       nameController.text = data['name'] ?? '';
       phoneController.text = data['phone'] ?? '';
       emailController.text = data['email'] ?? '';
+
+      setState(() {
+        profileImageUrl = data['profile_image'] ?? '';
+      });
 
       originalData = {
         'name': nameController.text,
@@ -50,12 +61,90 @@ class _UserProfilePageState extends State<UserProfilePage> {
     }
   }
 
+  Future<void> _pickAndUploadImage() async {
+    final picker = ImagePicker();
+    final pickedFile = await picker.pickImage(source: ImageSource.gallery);
+    if (pickedFile == null) return;
+
+    setState(() {
+      isUploading = true;
+    });
+
+    try {
+      final file = File(pickedFile.path);
+      final fileName = path.basename(file.path);
+      // final fileBytes = await file.readAsBytes();
+      final mimeType = lookupMimeType(file.path) ?? 'image/*';
+
+      final user = supabase.auth.currentUser;
+      if (user == null) {
+        throw Exception('User not logged in');
+      }
+
+      final filePath = 'profile_images/${user.id}/$fileName';
+
+      print('Before uploading...');
+
+      // ✅ Upload the image to Supabase storage
+      final uploadResponse = await supabase.storage
+          .from('profile-images')
+          .upload(
+            filePath,
+            file, // pass the File object directly here
+            fileOptions: FileOptions(contentType: mimeType, upsert: true),
+          );
+
+      print('Upload response: ${uploadResponse}');
+
+      // ✅ Get the public URL of the uploaded image
+      final publicUrl = supabase.storage
+          .from('profile-images')
+          .getPublicUrl(filePath);
+
+      // ✅ Update Supabase user metadata
+      final updateRes = await supabase.auth.updateUser(
+        UserAttributes(
+          data: {...?user.userMetadata, 'profile_picture': publicUrl},
+        ),
+      );
+
+      if (updateRes.user == null) {
+        throw Exception('Failed to update user metadata');
+      }
+
+      // ✅ Optionally update your backend
+      await http.post(
+        Uri.parse('http://192.168.58...:5000/profile/update-image'),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({'user_id': user.id, 'profile_picture': publicUrl}),
+      );
+
+      // ✅ Update local state
+      setState(() {
+        profileImageUrl = publicUrl;
+        isUploading = false;
+      });
+
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Profile image updated')));
+    } catch (e) {
+      print('Error: $e');
+      setState(() {
+        isUploading = false;
+      });
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Image upload failed')));
+    }
+  }
+
   Future<void> _fetchContacts() async {
     final user = supabase.auth.currentUser;
     if (user == null) return;
 
     final response = await http.get(
-      Uri.parse('http://localhost:5001/contacts/${user.id}'),
+      Uri.parse('http://192.168.58...:5000/contacts/${user.id}'),
     );
 
     if (response.statusCode == 200) {
@@ -67,31 +156,31 @@ class _UserProfilePageState extends State<UserProfilePage> {
   }
 
   Future<void> _deleteContact(BuildContext context, String contactId) async {
-    // Show confirmation dialog
     final shouldDelete = await showDialog<bool>(
       context: context,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          title: const Text('Confirm Deletion'),
-          content: const Text('Are you sure you want to delete this contact?'),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(context).pop(false), // Cancel
-              child: const Text('Cancel'),
+      builder:
+          (_) => AlertDialog(
+            title: const Text('Confirm Deletion'),
+            content: const Text(
+              'Are you sure you want to delete this contact?',
             ),
-            ElevatedButton(
-              style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
-              onPressed: () => Navigator.of(context).pop(true), // Confirm
-              child: const Text('Confirm'),
-            ),
-          ],
-        );
-      },
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(context).pop(false),
+                child: const Text('Cancel'),
+              ),
+              ElevatedButton(
+                style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+                onPressed: () => Navigator.of(context).pop(true),
+                child: const Text('Confirm'),
+              ),
+            ],
+          ),
     );
 
     if (shouldDelete == true) {
       final response = await http.delete(
-        Uri.parse('http://localhost:5001/contacts/delete/$contactId'),
+        Uri.parse('http://192.168.58...:5000/contacts/delete/$contactId'),
       );
 
       if (response.statusCode == 200) {
@@ -133,7 +222,7 @@ class _UserProfilePageState extends State<UserProfilePage> {
     updatedFields['id'] = user.id;
 
     final response = await http.post(
-      Uri.parse('http://localhost:5001/profile/update'),
+      Uri.parse('http://192.168.58...:5000/profile/update'),
       headers: {'Content-Type': 'application/json'},
       body: jsonEncode(updatedFields),
     );
@@ -206,6 +295,29 @@ class _UserProfilePageState extends State<UserProfilePage> {
         padding: const EdgeInsets.all(20.0),
         child: Column(
           children: [
+            GestureDetector(
+              onTap: _pickAndUploadImage,
+              child: Stack(
+                children: [
+                  CircleAvatar(
+                    radius: 50,
+                    backgroundImage:
+                        profileImageUrl != null && profileImageUrl!.isNotEmpty
+                            ? NetworkImage(profileImageUrl!) // ✅ ImageProvider
+                            : AssetImage('assets/profile.png'),
+                    child:
+                        profileImageUrl == null
+                            ? const Icon(Icons.person, size: 50)
+                            : null,
+                  ),
+                  if (isUploading)
+                    const Positioned.fill(
+                      child: Center(child: CircularProgressIndicator()),
+                    ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 10),
             TextField(
               controller: nameController,
               decoration: const InputDecoration(labelText: "Full Name"),
@@ -242,7 +354,7 @@ class _UserProfilePageState extends State<UserProfilePage> {
             ),
             const SizedBox(height: 10),
             contacts.isEmpty
-                ? const Text("No any contacts saved yet!")
+                ? const Text("No contacts saved yet!")
                 : Column(
                   children: contacts.map((c) => _buildContactCard(c)).toList(),
                 ),
