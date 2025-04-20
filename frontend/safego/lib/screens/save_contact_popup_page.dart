@@ -33,7 +33,7 @@ class _SaveContactPopupPageState extends State<SaveContactPopupPage> {
     };
 
     final response = await http.post(
-      Uri.parse('http://localhost:5000/contacts/add'),
+      Uri.parse('http://192.168.58.192:5000/contacts/add'),
       headers: {'Content-Type': 'application/json'},
       body: jsonEncode(contact),
     );

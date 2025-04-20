@@ -1,34 +1,111 @@
 import 'package:flutter/material.dart';
-import 'package:safego/services/secure_storage_service.dart';
-import 'package:safego/screens/signup_page.dart';
+import 'package:safego/screens/emergency_numbers.dart';
+import 'package:safego/services/secure_storage_service.dart'; // For token storage
+import 'package:safego/screens/signup_page.dart'; // For navigation to login page
 import '../supabase_client.dart';
 import 'user_profile_page.dart';
-import '../utils/location_scheduler.dart'; // import the location scheduler!
+import 'package:http/http.dart' as http;
+import 'dart:convert';
 
 class DashboardScreen extends StatefulWidget {
   @override
-  State<DashboardScreen> createState() => _DashboardScreenState();
+  _DashboardScreenState createState() => _DashboardScreenState();
 }
 
 class _DashboardScreenState extends State<DashboardScreen> {
-  @override
-  void initState() {
-    super.initState();
-    LocationScheduler.startLocationUpdates();
+  int _selectedIndex = 0;
+  String country = 'USA';
+
+  void _onItemTapped(int index) {
+    setState(() {
+      _selectedIndex = index;
+    });
+
+    switch (index) {
+      case 0:
+        break;
+      case 1:
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (_) => EmergencyNumbersPage(country: country),
+          ),
+        );
+        break;
+      case 2:
+        Navigator.pushNamed(context, '/history');
+        break;
+      case 3:
+        Navigator.push(
+          context,
+          MaterialPageRoute(builder: (_) => UserProfilePage()),
+        );
+        break;
+    }
   }
 
-  @override
-  void dispose() {
-    LocationScheduler.stopLocationUpdates();
-    super.dispose();
+  void _sendSOS(String type, BuildContext context) async {
+    try {
+      final user = supabase.auth.currentUser;
+      if (user == null) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text("User not logged in")));
+        return;
+      }
+
+      final response = await http.post(
+        Uri.parse(
+          'http://192.168.58.129:5000/sos/trigger-sos',
+        ), // Replace with your actual backend URL
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({'user_id': user.id, 'type': type}),
+      );
+
+      if (response.statusCode == 200) {
+        final json = jsonDecode(response.body);
+        final notified = json['notified'] ?? [];
+        String msg = "SOS sent to ${type == 'All' ? 'all' : type} services";
+        if (notified.isNotEmpty) {
+          msg += ": ${notified.map((s) => s['name']).join(', ')}";
+        }
+
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(msg)));
+      } else {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text("Failed: ${response.body}")));
+      }
+    } catch (e) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text("Failed to send SOS: $e")));
+    }
   }
 
-  @override
   Widget build(BuildContext context) {
     final height = MediaQuery.of(context).size.height;
 
     return Scaffold(
       backgroundColor: Colors.blue,
+      bottomNavigationBar: BottomNavigationBar(
+        type: BottomNavigationBarType.fixed,
+        currentIndex: _selectedIndex,
+        selectedItemColor: Colors.blue,
+        unselectedItemColor: Colors.grey,
+        onTap: _onItemTapped,
+        items: const [
+          BottomNavigationBarItem(icon: Icon(Icons.home), label: 'Home'),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.phone_in_talk),
+            label: 'Emergency',
+          ),
+          BottomNavigationBarItem(icon: Icon(Icons.history), label: 'History'),
+          BottomNavigationBarItem(icon: Icon(Icons.person), label: 'Profile'),
+        ],
+      ),
       body: Stack(
         children: [
           // White Curved Container
@@ -56,8 +133,66 @@ class _DashboardScreenState extends State<DashboardScreen> {
                       elevation: 6,
                     ),
                     onPressed: () {
-                      print("SOS Pressed");
-                      // Add your SOS functionality here
+                      showModalBottomSheet(
+                        context: context,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.vertical(
+                            top: Radius.circular(25.0),
+                          ),
+                        ),
+                        builder: (context) {
+                          return Container(
+                            padding: EdgeInsets.all(20),
+                            child: Column(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Text(
+                                  "Select Emergency Type",
+                                  style: TextStyle(
+                                    fontSize: 20,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                                SizedBox(height: 20),
+                                Row(
+                                  mainAxisAlignment:
+                                      MainAxisAlignment.spaceAround,
+                                  children: [
+                                    _buildSOSOption(
+                                      context,
+                                      Icons.local_police,
+                                      "Police",
+                                    ),
+                                    _buildSOSOption(
+                                      context,
+                                      Icons.local_hospital,
+                                      "Ambulance",
+                                    ),
+                                    _buildSOSOption(
+                                      context,
+                                      Icons.local_fire_department,
+                                      "Fire",
+                                    ),
+                                  ],
+                                ),
+                                SizedBox(height: 20),
+                                ElevatedButton.icon(
+                                  onPressed: () {
+                                    Navigator.pop(context);
+                                    _sendSOS("All", context);
+                                  },
+                                  icon: Icon(Icons.warning_amber_rounded),
+                                  label: Text("Send to All"),
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: Colors.red,
+                                    foregroundColor: Colors.white,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          );
+                        },
+                      );
                     },
                     child: Text(
                       "SOS",
@@ -194,6 +329,26 @@ class _DashboardScreenState extends State<DashboardScreen> {
               },
             ),
           ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSOSOption(BuildContext context, IconData icon, String label) {
+    return GestureDetector(
+      onTap: () {
+        Navigator.pop(context);
+        _sendSOS(label, context);
+      },
+      child: Column(
+        children: [
+          CircleAvatar(
+            radius: 30,
+            backgroundColor: Colors.red.shade100,
+            child: Icon(icon, size: 30, color: Colors.red),
+          ),
+          SizedBox(height: 8),
+          Text(label),
         ],
       ),
     );
