@@ -77,3 +77,5 @@ SafeGo is a smart emergency assistance application designed to protect travelers
 Backend :
 
 1. npm install node-fetch node-cron dotenv
+2. npm install @supabase/supabase-js express cors body-parser
+3. 
