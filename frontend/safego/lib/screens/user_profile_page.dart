@@ -40,7 +40,7 @@ class _UserProfilePageState extends State<UserProfilePage> {
     if (user == null) return;
 
     final response = await http.get(
-      Uri.parse('http://192.168.58.129:5000/profile/${user.id}'),
+      Uri.parse('http://localhost:5000/profile/${user.id}'),
     );
 
     if (response.statusCode == 200) {

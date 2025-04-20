@@ -6,6 +6,7 @@ import '../supabase_client.dart';
 import 'user_profile_page.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
+import '../utils/location_scheduler.dart'; // import the location scheduler!
 
 class DashboardScreen extends StatefulWidget {
   @override
@@ -13,6 +14,18 @@ class DashboardScreen extends StatefulWidget {
 }
 
 class _DashboardScreenState extends State<DashboardScreen> {
+   @override
+  void initState() {
+    super.initState();
+    LocationScheduler.startLocationUpdates();
+  }
+
+  @override
+  void dispose() {
+    LocationScheduler.stopLocationUpdates();
+    super.dispose();
+  }
+
   int _selectedIndex = 0;
   String country = 'USA';
 
@@ -56,7 +69,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
       final response = await http.post(
         Uri.parse(
-          'http://192.168.58.129:5000/sos/trigger-sos',
+          'http://localhost.129:5000/sos/trigger-sos',
         ), // Replace with your actual backend URL
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode({'user_id': user.id, 'type': type}),
