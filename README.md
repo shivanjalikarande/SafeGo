@@ -49,7 +49,7 @@ SafeGo is a smart emergency assistance application designed to protect travelers
 
 | Component        | Technology              |
 |------------------|--------------------------|
-| Frontend         | Flutter / React Native *(planned)* |
+| Frontend         | Flutter                  |
 | Backend          | Node.js (Express.js)     |
 | Location API     | Google Maps Geolocation API |
 | Messaging API    | Twilio / SMS Gateway     |
