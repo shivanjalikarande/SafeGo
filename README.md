@@ -54,7 +54,7 @@ SafeGo is a smart emergency assistance application designed to protect travelers
 | Location API     | Google Maps Geolocation API |
 | Messaging API    | Twilio / SMS Gateway     |
 | Email API        | Nodemailer / Gmail SMTP  |
-| Database         | MongoDB (via Mongoose)   |
+| Database         | PostgreSQL - Supabase   |
 | Deployment       | Railway / Vercel / Render |
 
 ---
