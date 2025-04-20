@@ -30,13 +30,14 @@ class _VerifyOtpPageState extends State<VerifyOtpPage> {
 
       final user = res.user;
       final session = res.session;
+      // print(user);
 
       if (user != null && session != null) {
         if (!isLogin) {
           // Only insert into DB during signup
           final response = await http.post(
             Uri.parse(
-              'http://192.168.58.129:5000/auth/register',
+              'http://localhost:5000/auth/register',
             ), // If using emulator, otherwise use <localhost>
             headers: {'Content-Type': 'application/json'},
             body: jsonEncode({
@@ -47,6 +48,7 @@ class _VerifyOtpPageState extends State<VerifyOtpPage> {
             }),
           );
           if (response.statusCode != 200) {
+            // print(response.body);
             throw Exception('User DB insert failed');
           }
         }
