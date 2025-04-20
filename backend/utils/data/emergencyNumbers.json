@@ -1,0 +1,23 @@
+{
+    "India": {
+      "police": "112",
+      "fire": "101",
+      "ambulance": "102"
+    },
+    "USA": {
+      "police": "911",
+      "fire": "911",
+      "ambulance": "911"
+    },
+    "Japan": {
+      "police": "110",
+      "fire": "119",
+      "ambulance": "119"
+    },
+    "France": {
+      "police": "112",
+      "fire": "112",
+      "ambulance": "112"
+    }
+  }
+  
