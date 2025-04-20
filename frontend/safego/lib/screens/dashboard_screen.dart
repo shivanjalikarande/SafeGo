@@ -1,10 +1,28 @@
 import 'package:flutter/material.dart';
-import 'package:safego/services/secure_storage_service.dart'; // For token storage
-import 'package:safego/screens/signup_page.dart'; // For navigation to login page
+import 'package:safego/services/secure_storage_service.dart';
+import 'package:safego/screens/signup_page.dart';
 import '../supabase_client.dart';
 import 'user_profile_page.dart';
+import '../utils/location_scheduler.dart'; // import the location scheduler!
 
-class DashboardScreen extends StatelessWidget {
+class DashboardScreen extends StatefulWidget {
+  @override
+  State<DashboardScreen> createState() => _DashboardScreenState();
+}
+
+class _DashboardScreenState extends State<DashboardScreen> {
+  @override
+  void initState() {
+    super.initState();
+    LocationScheduler.startLocationUpdates();
+  }
+
+  @override
+  void dispose() {
+    LocationScheduler.stopLocationUpdates();
+    super.dispose();
+  }
+
   @override
   Widget build(BuildContext context) {
     final height = MediaQuery.of(context).size.height;
@@ -60,30 +78,19 @@ class DashboardScreen extends StatelessWidget {
                       children: [
                         _buildServiceItem(Icons.local_police, "Police", () {
                           print("Police button tapped");
-                          // Navigate or handle Police tap
                         }),
-                        _buildServiceItem(
-                          Icons.local_hospital,
-                          "Ambulance",
-                          () {
-                            print("Ambulance button tapped");
-                            // Navigate or handle Ambulance tap
-                          },
-                        ),
-                        _buildServiceItem(
-                          Icons.local_fire_department,
-                          "Fire",
-                          () {
-                            print("Fire button tapped");
-                            // Navigate or handle Fire tap
-                          },
-                        ),
+                        _buildServiceItem(Icons.local_hospital, "Ambulance", () {
+                          print("Ambulance button tapped");
+                        }),
+                        _buildServiceItem(Icons.local_fire_department, "Fire", () {
+                          print("Fire button tapped");
+                        }),
                       ],
                     ),
                   ),
                   SizedBox(height: 30),
 
-                  // Placeholder for map section
+                  // Map Section
                   Expanded(
                     child: Container(
                       margin: EdgeInsets.symmetric(horizontal: 20),
@@ -105,7 +112,7 @@ class DashboardScreen extends StatelessWidget {
             ),
           ),
 
-          // Top Blue Section with profile and name
+          // Top Blue Section
           Positioned(
             top: 40,
             left: 20,
@@ -122,7 +129,6 @@ class DashboardScreen extends StatelessWidget {
                     IconButton(
                       icon: Icon(Icons.settings, color: Colors.white),
                       onPressed: () {
-                        // Navigator.pushNamed(context, '/user-profile');
                         if (supabase.auth.currentUser != null) {
                           Navigator.push(
                             context,
@@ -148,9 +154,7 @@ class DashboardScreen extends StatelessWidget {
               children: [
                 CircleAvatar(
                   radius: 30,
-                  backgroundImage: AssetImage(
-                    'assets/profile.png',
-                  ), // Make sure this asset exists
+                  backgroundImage: AssetImage('assets/profile.png'),
                 ),
                 SizedBox(width: 12),
                 Column(
@@ -174,16 +178,14 @@ class DashboardScreen extends StatelessWidget {
             ),
           ),
 
-          // Logout Button (Top Right Corner)
+          // Logout Button (Top Right)
           Positioned(
             top: 80,
             right: 10,
             child: IconButton(
               icon: Icon(Icons.logout, color: Colors.white),
               onPressed: () async {
-                // Clear the token from secure storage
                 await SecureStorageService.clear();
-                // Navigate to login page
                 Navigator.pushAndRemoveUntil(
                   context,
                   MaterialPageRoute(builder: (context) => SignupPage()),
