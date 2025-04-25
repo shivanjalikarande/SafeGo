@@ -22,6 +22,7 @@ dependencies:
   mime: ^1.0.4
   geolocator: ^11.0.0
   permission_handler: ^11.0.0
+  telephony: ^0.2.0
 
   cupertino_icons: ^1.0.8
 

@@ -37,7 +37,7 @@ class _VerifyOtpPageState extends State<VerifyOtpPage> {
           // Only insert into DB during signup
           final response = await http.post(
             Uri.parse(
-              'http://localhost:5000/auth/register',
+              'http://192.168.58.129:5000/auth/register',
             ), // If using emulator, otherwise use <localhost>
             headers: {'Content-Type': 'application/json'},
             body: jsonEncode({

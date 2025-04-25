@@ -7,6 +7,8 @@ import 'user_profile_page.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import '../utils/location_scheduler.dart'; // import the location scheduler!
+import 'package:telephony/telephony.dart';
+import '../services/location_service.dart';
 
 class DashboardScreen extends StatefulWidget {
   @override
@@ -14,16 +16,40 @@ class DashboardScreen extends StatefulWidget {
 }
 
 class _DashboardScreenState extends State<DashboardScreen> {
-   @override
+  final Telephony telephony = Telephony.instance;
+  @override
   void initState() {
     super.initState();
+    askForSmsPermission();
     LocationScheduler.startLocationUpdates();
+  }
+
+  void askForSmsPermission() async {
+    bool? permissionsGranted = await telephony.requestSmsPermissions;
+    if (permissionsGranted == true) {
+      print("✅ SMS permissions granted");
+    } else {
+      print("❌ SMS permissions denied");
+    }
   }
 
   @override
   void dispose() {
     LocationScheduler.stopLocationUpdates();
     super.dispose();
+  }
+
+  Future<String> _getLocation() async {
+    try {
+      final position = await LocationService.getCurrentLocation();
+      String location =
+          "Lat: ${position.latitude}, Long: ${position.longitude}";
+      print("📍 Current Location: $location");
+      return location;
+    } catch (e) {
+      print("⚠️ Error getting location: $e");
+      return "Location unavailable";
+    }
   }
 
   int _selectedIndex = 0;
@@ -57,44 +83,142 @@ class _DashboardScreenState extends State<DashboardScreen> {
     }
   }
 
-  void _sendSOS(String type, BuildContext context) async {
-    try {
-      final user = supabase.auth.currentUser;
-      if (user == null) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text("User not logged in")));
-        return;
-      }
+  void _showSeverityDialog(BuildContext context) {
+    String selectedSeverity = "High";
+    bool informEmbassy = false;
 
-      final response = await http.post(
-        Uri.parse(
-          'http://localhost.129:5000/sos/trigger-sos',
-        ), // Replace with your actual backend URL
-        headers: {'Content-Type': 'application/json'},
-        body: jsonEncode({'user_id': user.id, 'type': type}),
-      );
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (BuildContext context) {
+        return StatefulBuilder(
+          builder: (
+            BuildContext context,
+            void Function(void Function()) setState,
+          ) {
+            return AlertDialog(
+              title: Text("Emergency Alert"),
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text("Select Severity:"),
+                  DropdownButton<String>(
+                    value: selectedSeverity,
+                    onChanged: (String? newValue) {
+                      if (newValue != null) {
+                        setState(() {
+                          selectedSeverity = newValue;
+                        });
+                      }
+                    },
+                    items:
+                        ['High', 'Moderate', 'Low']
+                            .map(
+                              (level) => DropdownMenuItem(
+                                value: level,
+                                child: Text(level),
+                              ),
+                            )
+                            .toList(),
+                  ),
+                  SizedBox(height: 10),
+                  Row(
+                    children: [
+                      Checkbox(
+                        value: informEmbassy,
+                        onChanged: (bool? value) {
+                          setState(() {
+                            informEmbassy = value ?? false;
+                          });
+                        },
+                      ),
+                      Text("Inform Embassy?"),
+                    ],
+                  ),
+                ],
+              ),
+              actions: [
+                TextButton(
+                  child: Text("Yes"),
+                  onPressed: () {
+                    Navigator.pop(context); // Close dialog
+                    _triggerEmergency(selectedSeverity, informEmbassy);
+                  },
+                ),
+                TextButton(
+                  child: Text("Cancel"),
+                  onPressed: () => Navigator.pop(context),
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
+  }
 
-      if (response.statusCode == 200) {
-        final json = jsonDecode(response.body);
-        final notified = json['notified'] ?? [];
-        String msg = "SOS sent to ${type == 'All' ? 'all' : type} services";
-        if (notified.isNotEmpty) {
-          msg += ": ${notified.map((s) => s['name']).join(', ')}";
-        }
-
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text(msg)));
-      } else {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text("Failed: ${response.body}")));
-      }
-    } catch (e) {
+  void _triggerEmergency(String severity, bool informEmbassy) async {
+    final user = supabase.auth.currentUser;
+    if (user == null) {
       ScaffoldMessenger.of(
         context,
-      ).showSnackBar(SnackBar(content: Text("Failed to send SOS: $e")));
+      ).showSnackBar(SnackBar(content: Text("User not logged in")));
+      return;
+    }
+
+    final contactsResponse = await http.get(
+      Uri.parse('http://192.168.58.129:5000/contacts/${user.id}'),
+    );
+
+    if (contactsResponse.statusCode == 200) {
+      final contacts = jsonDecode(contactsResponse.body);
+      final location = await _getLocation();
+
+      final userData =
+          await supabase
+              .from('users')
+              .select('name')
+              .eq('id', user.id)
+              .single();
+
+      final userName = userData['name'] ?? 'Someone';
+
+      for (var contact in contacts) {
+        final phone = contact['phone'];
+        // final name = contact['name'];
+
+        final message =
+            "Emergency Alert for $userName!\n"
+            "Severity: $severity\n"
+            "Condition: User is in distress.\n"
+            "Live location: $location\n"
+            "${informEmbassy ? 'Embassy has been informed.' : ''}";
+
+        _sendSMSOffline(phone, message); // Step 3
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text("Messages sent to all saved contacts ✅"),
+            duration: Duration(seconds: 5),
+          ),
+        );
+      }
+    } else {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text("Failed to fetch contacts.")));
+    }
+  }
+
+  void _sendSMSOffline(String phone, String message) async {
+    final Telephony telephony = Telephony.instance;
+
+    bool? permissionsGranted = await telephony.requestPhonePermissions;
+    if (permissionsGranted == true) {
+      await telephony.sendSms(to: phone, message: message);
+    } else {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text("SMS permission not granted")));
     }
   }
 
@@ -146,66 +270,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                       elevation: 6,
                     ),
                     onPressed: () {
-                      showModalBottomSheet(
-                        context: context,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.vertical(
-                            top: Radius.circular(25.0),
-                          ),
-                        ),
-                        builder: (context) {
-                          return Container(
-                            padding: EdgeInsets.all(20),
-                            child: Column(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                Text(
-                                  "Select Emergency Type",
-                                  style: TextStyle(
-                                    fontSize: 20,
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                ),
-                                SizedBox(height: 20),
-                                Row(
-                                  mainAxisAlignment:
-                                      MainAxisAlignment.spaceAround,
-                                  children: [
-                                    _buildSOSOption(
-                                      context,
-                                      Icons.local_police,
-                                      "Police",
-                                    ),
-                                    _buildSOSOption(
-                                      context,
-                                      Icons.local_hospital,
-                                      "Ambulance",
-                                    ),
-                                    _buildSOSOption(
-                                      context,
-                                      Icons.local_fire_department,
-                                      "Fire",
-                                    ),
-                                  ],
-                                ),
-                                SizedBox(height: 20),
-                                ElevatedButton.icon(
-                                  onPressed: () {
-                                    Navigator.pop(context);
-                                    _sendSOS("All", context);
-                                  },
-                                  icon: Icon(Icons.warning_amber_rounded),
-                                  label: Text("Send to All"),
-                                  style: ElevatedButton.styleFrom(
-                                    backgroundColor: Colors.red,
-                                    foregroundColor: Colors.white,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          );
-                        },
-                      );
+                      _showSeverityDialog(context);
                     },
                     child: Text(
                       "SOS",
@@ -227,12 +292,20 @@ class _DashboardScreenState extends State<DashboardScreen> {
                         _buildServiceItem(Icons.local_police, "Police", () {
                           print("Police button tapped");
                         }),
-                        _buildServiceItem(Icons.local_hospital, "Ambulance", () {
-                          print("Ambulance button tapped");
-                        }),
-                        _buildServiceItem(Icons.local_fire_department, "Fire", () {
-                          print("Fire button tapped");
-                        }),
+                        _buildServiceItem(
+                          Icons.local_hospital,
+                          "Ambulance",
+                          () {
+                            print("Ambulance button tapped");
+                          },
+                        ),
+                        _buildServiceItem(
+                          Icons.local_fire_department,
+                          "Fire",
+                          () {
+                            print("Fire button tapped");
+                          },
+                        ),
                       ],
                     ),
                   ),
@@ -342,26 +415,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
               },
             ),
           ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildSOSOption(BuildContext context, IconData icon, String label) {
-    return GestureDetector(
-      onTap: () {
-        Navigator.pop(context);
-        _sendSOS(label, context);
-      },
-      child: Column(
-        children: [
-          CircleAvatar(
-            radius: 30,
-            backgroundColor: Colors.red.shade100,
-            child: Icon(icon, size: 30, color: Colors.red),
-          ),
-          SizedBox(height: 8),
-          Text(label),
         ],
       ),
     );
