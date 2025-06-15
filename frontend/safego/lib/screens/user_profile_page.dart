@@ -40,7 +40,7 @@ class _UserProfilePageState extends State<UserProfilePage> {
     if (user == null) return;
 
     final response = await http.get(
-      Uri.parse('http://localhost:5000/profile/${user.id}'),
+      Uri.parse('http://192.168.58.129:5000/profile/${user.id}'),
     );
 
     if (response.statusCode == 200) {
@@ -87,12 +87,12 @@ class _UserProfilePageState extends State<UserProfilePage> {
 
       // ✅ Upload the image to Supabase storage
       final uploadResponse = await supabase.storage
-      .from('profile-images')
-      .uploadBinary(
-        filePath,
-        await file.readAsBytes(),
-        fileOptions: FileOptions(contentType: mimeType, upsert: true),
-      );
+          .from('profile-images')
+          .uploadBinary(
+            filePath,
+            await file.readAsBytes(),
+            fileOptions: FileOptions(contentType: mimeType, upsert: true),
+          );
 
       print('Upload response: ${uploadResponse}');
 

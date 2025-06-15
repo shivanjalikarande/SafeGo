@@ -7,6 +7,9 @@ import 'user_profile_page.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import '../utils/location_scheduler.dart'; // import the location scheduler!
+import 'package:telephony/telephony.dart';
+import '../services/location_service.dart';
+import './sos_history.dart';
 
 class DashboardScreen extends StatefulWidget {
   @override
@@ -14,16 +17,53 @@ class DashboardScreen extends StatefulWidget {
 }
 
 class _DashboardScreenState extends State<DashboardScreen> {
-   @override
+  bool isSafeMode = false;
+
+  final Telephony telephony = Telephony.instance;
+  @override
   void initState() {
     super.initState();
+    askForSmsPermission();
     LocationScheduler.startLocationUpdates();
+  }
+
+  void askForSmsPermission() async {
+    bool? permissionsGranted = await telephony.requestSmsPermissions;
+    if (permissionsGranted == true) {
+      print("✅ SMS permissions granted");
+    } else {
+      print("❌ SMS permissions denied");
+    }
   }
 
   @override
   void dispose() {
     LocationScheduler.stopLocationUpdates();
     super.dispose();
+  }
+
+  Future<Map<String, dynamic>> _getLocation() async {
+    try {
+      final position = await LocationService.getCurrentLocation();
+      return {"lat": position.latitude, "lng": position.longitude};
+    } catch (e) {
+      print("⚠️ Error getting location: $e");
+      return {"lat": 0.0, "lng": 0.0};
+    }
+  }
+
+  Future<String> _getAddress() async {
+    try {
+      final position = await LocationService.getCurrentLocation();
+      final address = await LocationService.getAddressFromLatLng(
+        position.latitude,
+        position.longitude,
+      );
+      return address;
+    } catch (e) {
+      print("⚠️ Error getting address: $e");
+      return "Address unavailable";
+    }
   }
 
   int _selectedIndex = 0;
@@ -46,7 +86,19 @@ class _DashboardScreenState extends State<DashboardScreen> {
         );
         break;
       case 2:
-        Navigator.pushNamed(context, '/history');
+        // Navigator.pushNamed(context, '/history');
+        final user = supabase.auth.currentUser;
+        if (user != null) {
+          Navigator.push(
+            context,
+            MaterialPageRoute(builder: (_) => SOSHistoryPage(userId: user.id)),
+          );
+        } else {
+          // Handle not logged-in case (optional)
+          ScaffoldMessenger.of(
+            context,
+          ).showSnackBar(SnackBar(content: Text("User not logged in")));
+        }
         break;
       case 3:
         Navigator.push(
@@ -57,44 +109,245 @@ class _DashboardScreenState extends State<DashboardScreen> {
     }
   }
 
-  void _sendSOS(String type, BuildContext context) async {
-    try {
-      final user = supabase.auth.currentUser;
-      if (user == null) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text("User not logged in")));
-        return;
-      }
+  void _showSeverityDialog(BuildContext context) {
+    String selectedSeverity = "High";
+    bool informEmbassy = false;
 
-      final response = await http.post(
-        Uri.parse(
-          'http://localhost.129:5000/sos/trigger-sos',
-        ), // Replace with your actual backend URL
-        headers: {'Content-Type': 'application/json'},
-        body: jsonEncode({'user_id': user.id, 'type': type}),
-      );
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (BuildContext context) {
+        return StatefulBuilder(
+          builder: (
+            BuildContext context,
+            void Function(void Function()) setState,
+          ) {
+            return AlertDialog(
+              title: Text("Emergency Alert"),
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text("Select Severity:"),
+                  DropdownButton<String>(
+                    value: selectedSeverity,
+                    onChanged: (String? newValue) {
+                      if (newValue != null) {
+                        setState(() {
+                          selectedSeverity = newValue;
+                        });
+                      }
+                    },
+                    items:
+                        ['High', 'Moderate', 'Low']
+                            .map(
+                              (level) => DropdownMenuItem(
+                                value: level,
+                                child: Text(level),
+                              ),
+                            )
+                            .toList(),
+                  ),
+                  SizedBox(height: 10),
+                  Row(
+                    children: [
+                      Checkbox(
+                        value: informEmbassy,
+                        onChanged: (bool? value) {
+                          setState(() {
+                            informEmbassy = value ?? false;
+                          });
+                        },
+                      ),
+                      Text("Inform Embassy?"),
+                    ],
+                  ),
+                ],
+              ),
+              actions: [
+                TextButton(
+                  child: Text("Yes"),
+                  onPressed: () {
+                    Navigator.pop(context); // Close dialog
+                    _triggerEmergency(selectedSeverity, informEmbassy);
+                  },
+                ),
+                TextButton(
+                  child: Text("Cancel"),
+                  onPressed: () => Navigator.pop(context),
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
+  }
 
-      if (response.statusCode == 200) {
-        final json = jsonDecode(response.body);
-        final notified = json['notified'] ?? [];
-        String msg = "SOS sent to ${type == 'All' ? 'all' : type} services";
-        if (notified.isNotEmpty) {
-          msg += ": ${notified.map((s) => s['name']).join(', ')}";
-        }
-
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text(msg)));
-      } else {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text("Failed: ${response.body}")));
-      }
-    } catch (e) {
+  void _triggerEmergency(String severity, bool informEmbassy) async {
+    final user = supabase.auth.currentUser;
+    if (user == null) {
       ScaffoldMessenger.of(
         context,
-      ).showSnackBar(SnackBar(content: Text("Failed to send SOS: $e")));
+      ).showSnackBar(SnackBar(content: Text("User not logged in")));
+      return;
+    }
+
+    final contactsResponse = await http.get(
+      Uri.parse('http://192.168.58.129:5000/contacts/${user.id}'),
+    );
+
+    if (contactsResponse.statusCode == 200) {
+      final contacts = jsonDecode(contactsResponse.body);
+      final location = await _getLocation();
+      final address = await _getAddress();
+
+      final userData =
+          await supabase
+              .from('users')
+              .select('name')
+              .eq('id', user.id)
+              .single();
+
+      final userName = userData['name'] ?? 'Someone';
+
+      for (var contact in contacts) {
+        final phone = contact['phone'];
+        // final name = contact['name'];
+
+        final message =
+            "Emergency Alert for $userName!\n"
+            "Severity: $severity\n"
+            "Condition: User is in distress.\n"
+            "Live location: $location\n"
+            "${informEmbassy ? 'Embassy has been informed.' : ''}";
+
+        _sendSMSOffline(phone, message); // Step 3
+      }
+      await http.post(
+        Uri.parse('http://192.168.58.129:5000/sos'),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({
+          'user_id': user.id,
+          'status': 'Unsafe',
+          'location': location,
+          'severity': severity,
+          'reason': 'SOS Emergency Alert',
+          'address': address,
+        }),
+      );
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text("Messages sent to all saved contacts ✅"),
+          duration: Duration(seconds: 5),
+        ),
+      );
+
+      setState(() {
+        isSafeMode = true;
+      });
+    } else {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text("Failed to fetch contacts.")));
+    }
+  }
+
+  void _sendSMSOffline(String phone, String message) async {
+    final Telephony telephony = Telephony.instance;
+
+    bool? permissionsGranted = await telephony.requestPhonePermissions;
+    if (permissionsGranted == true) {
+      await telephony.sendSms(to: phone, message: message);
+    } else {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text("SMS permission not granted")));
+    }
+  }
+
+  void _showSafeConfirmation(BuildContext context) {
+    showDialog(
+      context: context,
+      builder:
+          (context) => AlertDialog(
+            title: Text("Confirm Safety"),
+            content: Text("Are you sure you're now safe?"),
+            actions: [
+              TextButton(
+                child: Text("No"),
+                onPressed: () => Navigator.pop(context),
+              ),
+              TextButton(
+                child: Text("Yes"),
+                onPressed: () {
+                  Navigator.pop(context);
+                  _handleSafeConfirmation();
+                },
+              ),
+            ],
+          ),
+    );
+  }
+
+  void _handleSafeConfirmation() async {
+    final user = supabase.auth.currentUser;
+    if (user == null) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text("User not logged in")));
+      return;
+    }
+
+    final contactsResponse = await http.get(
+      Uri.parse('http://192.168.58.129:5000/contacts/${user.id}'),
+    );
+
+    if (contactsResponse.statusCode == 200) {
+      final contacts = jsonDecode(contactsResponse.body);
+      final location = await _getLocation();
+      final address = await _getAddress();
+
+      final userData =
+          await supabase
+              .from('users')
+              .select('name')
+              .eq('id', user.id)
+              .single();
+
+      final userName = userData['name'] ?? 'Someone';
+
+      for (var contact in contacts) {
+        final phone = contact['phone'];
+        final message =
+            "$userName is now safe.\n"
+            "Current location: $location";
+
+        _sendSMSOffline(phone, message);
+      }
+
+      await http.post(
+        Uri.parse('http://192.168.58.129:5000/sos'),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({
+          'user_id': user.id,
+          'status': 'safe',
+          'location': location,
+          'reason': 'Marked as Safe',
+          'address': address,
+        }),
+      );
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("Safe confirmation sent to contacts ✅")),
+      );
+
+      setState(() {
+        isSafeMode = false; // Back to SOS mode
+      });
+    } else {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text("Failed to fetch contacts.")));
     }
   }
 
@@ -136,106 +389,44 @@ class _DashboardScreenState extends State<DashboardScreen> {
               child: Column(
                 children: [
                   SizedBox(height: 80),
-
-                  // SOS Button
-                  ElevatedButton(
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.red,
-                      shape: CircleBorder(),
-                      padding: EdgeInsets.all(50),
-                      elevation: 6,
-                    ),
-                    onPressed: () {
-                      showModalBottomSheet(
-                        context: context,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.vertical(
-                            top: Radius.circular(25.0),
+                  isSafeMode
+                      ? ElevatedButton(
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.green,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          padding: EdgeInsets.symmetric(
+                            horizontal: 40,
+                            vertical: 20,
                           ),
                         ),
-                        builder: (context) {
-                          return Container(
-                            padding: EdgeInsets.all(20),
-                            child: Column(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                Text(
-                                  "Select Emergency Type",
-                                  style: TextStyle(
-                                    fontSize: 20,
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                ),
-                                SizedBox(height: 20),
-                                Row(
-                                  mainAxisAlignment:
-                                      MainAxisAlignment.spaceAround,
-                                  children: [
-                                    _buildSOSOption(
-                                      context,
-                                      Icons.local_police,
-                                      "Police",
-                                    ),
-                                    _buildSOSOption(
-                                      context,
-                                      Icons.local_hospital,
-                                      "Ambulance",
-                                    ),
-                                    _buildSOSOption(
-                                      context,
-                                      Icons.local_fire_department,
-                                      "Fire",
-                                    ),
-                                  ],
-                                ),
-                                SizedBox(height: 20),
-                                ElevatedButton.icon(
-                                  onPressed: () {
-                                    Navigator.pop(context);
-                                    _sendSOS("All", context);
-                                  },
-                                  icon: Icon(Icons.warning_amber_rounded),
-                                  label: Text("Send to All"),
-                                  style: ElevatedButton.styleFrom(
-                                    backgroundColor: Colors.red,
-                                    foregroundColor: Colors.white,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          );
+                        onPressed: () => _showSafeConfirmation(context),
+                        child: Text(
+                          "Now Safe",
+                          style: TextStyle(fontSize: 20, color: Colors.white),
+                        ),
+                      )
+                      : ElevatedButton(
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.red,
+                          shape: CircleBorder(),
+                          padding: EdgeInsets.all(50),
+                          elevation: 6,
+                        ),
+                        onPressed: () {
+                          _showSeverityDialog(context);
                         },
-                      );
-                    },
-                    child: Text(
-                      "SOS",
-                      style: TextStyle(
-                        fontSize: 24,
-                        color: Colors.white,
-                        fontWeight: FontWeight.bold,
+                        child: Text(
+                          "SOS",
+                          style: TextStyle(
+                            fontSize: 24,
+                            color: Colors.white,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
                       ),
-                    ),
-                  ),
-                  SizedBox(height: 30),
 
-                  // Police, Ambulance, Fire Options
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 20),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceAround,
-                      children: [
-                        _buildServiceItem(Icons.local_police, "Police", () {
-                          print("Police button tapped");
-                        }),
-                        _buildServiceItem(Icons.local_hospital, "Ambulance", () {
-                          print("Ambulance button tapped");
-                        }),
-                        _buildServiceItem(Icons.local_fire_department, "Fire", () {
-                          print("Fire button tapped");
-                        }),
-                      ],
-                    ),
-                  ),
                   SizedBox(height: 30),
 
                   // Map Section
@@ -347,43 +538,23 @@ class _DashboardScreenState extends State<DashboardScreen> {
     );
   }
 
-  Widget _buildSOSOption(BuildContext context, IconData icon, String label) {
-    return GestureDetector(
-      onTap: () {
-        Navigator.pop(context);
-        _sendSOS(label, context);
-      },
-      child: Column(
-        children: [
-          CircleAvatar(
-            radius: 30,
-            backgroundColor: Colors.red.shade100,
-            child: Icon(icon, size: 30, color: Colors.red),
-          ),
-          SizedBox(height: 8),
-          Text(label),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildServiceItem(IconData icon, String label, VoidCallback onTap) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Column(
-        children: [
-          Container(
-            padding: EdgeInsets.all(14),
-            decoration: BoxDecoration(
-              color: Colors.blue.shade50,
-              shape: BoxShape.circle,
-            ),
-            child: Icon(icon, color: Colors.blue, size: 30),
-          ),
-          SizedBox(height: 8),
-          Text(label, style: TextStyle(color: Colors.black87)),
-        ],
-      ),
-    );
-  }
+  // Widget _buildServiceItem(IconData icon, String label, VoidCallback onTap) {
+  //   return GestureDetector(
+  //     onTap: onTap,
+  //     child: Column(
+  //       children: [
+  //         Container(
+  //           padding: EdgeInsets.all(14),
+  //           decoration: BoxDecoration(
+  //             color: Colors.blue.shade50,
+  //             shape: BoxShape.circle,
+  //           ),
+  //           child: Icon(icon, color: Colors.blue, size: 30),
+  //         ),
+  //         SizedBox(height: 8),
+  //         Text(label, style: TextStyle(color: Colors.black87)),
+  //       ],
+  //     ),
+  //   );
+  // }
 }

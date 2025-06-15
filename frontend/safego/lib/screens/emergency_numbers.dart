@@ -23,7 +23,7 @@ class _EmergencyNumbersPageState extends State<EmergencyNumbersPage> {
 
   Future<void> fetchEmergencyNumbers() async {
     final uri = Uri.parse(
-      'http://localhost:5000/emergency/numbers?country=${widget.country}',
+      'http://192.168.58.129:5000/emergency/numbers?country=${widget.country}',
     );
     final response = await http.get(uri);
 
