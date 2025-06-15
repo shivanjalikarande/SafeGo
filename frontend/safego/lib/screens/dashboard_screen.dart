@@ -10,6 +10,7 @@ import '../utils/location_scheduler.dart'; // import the location scheduler!
 import 'package:telephony/telephony.dart';
 import '../services/location_service.dart';
 import './sos_history.dart';
+import './settings_page.dart';
 
 class DashboardScreen extends StatefulWidget {
   @override
@@ -193,7 +194,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
     }
 
     final contactsResponse = await http.get(
-      Uri.parse('http://192.168.58.129:5000/contacts/${user.id}'),
+      Uri.parse('http://192.168.221.129:5000/contacts/${user.id}'),
     );
 
     if (contactsResponse.statusCode == 200) {
@@ -224,7 +225,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
         _sendSMSOffline(phone, message); // Step 3
       }
       await http.post(
-        Uri.parse('http://192.168.58.129:5000/sos'),
+        Uri.parse('http://192.168.221.129:5000/sos'),
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode({
           'user_id': user.id,
@@ -299,7 +300,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
     }
 
     final contactsResponse = await http.get(
-      Uri.parse('http://192.168.58.129:5000/contacts/${user.id}'),
+      Uri.parse('http://192.168.221.129:5000/contacts/${user.id}'),
     );
 
     if (contactsResponse.statusCode == 200) {
@@ -326,7 +327,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
       }
 
       await http.post(
-        Uri.parse('http://192.168.58.129:5000/sos'),
+        Uri.parse('http://192.168.221.129:5000/sos'),
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode({
           'user_id': user.id,
@@ -353,7 +354,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
   Widget build(BuildContext context) {
     final height = MediaQuery.of(context).size.height;
-
+    // final user = supabase.auth.currentUser;
     return Scaffold(
       backgroundColor: Colors.blue,
       bottomNavigationBar: BottomNavigationBar(
@@ -437,11 +438,18 @@ class _DashboardScreenState extends State<DashboardScreen> {
                         color: const Color.fromARGB(216, 245, 245, 245),
                         borderRadius: BorderRadius.circular(20),
                       ),
-                      child: Center(
-                        child: Icon(
-                          Icons.location_on,
-                          size: 40,
-                          color: Colors.blue,
+                      // child: Center(
+                      //   child: Icon(
+                      //     Icons.location_on,
+                      //     size: 40,
+                      //     color: Colors.blue,
+                      //   ),
+                      // ),
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(20),
+                        child: Image.asset(
+                          'assets/MapAddress.jpg',
+                          fit: BoxFit.cover,
                         ),
                       ),
                     ),
@@ -472,7 +480,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                           Navigator.push(
                             context,
                             MaterialPageRoute(
-                              builder: (_) => UserProfilePage(),
+                              builder: (context) => CheckInSettingsPage(),
                             ),
                           );
                         } else {

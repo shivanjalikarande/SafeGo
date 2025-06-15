@@ -1,0 +1,19 @@
+{
+    "title": "SafeGo",
+    "emergency": "Emergency",
+    "contactSupport": "Contact Support",
+    "sosMessage": "Your SOS message has been sent.",
+    "startTracking": "Start Tracking",
+    "locationAccess": "We need access to your location for real-time tracking.",
+    "alert": "Alert",
+    "sendSOS": "Send SOS",
+    "trackingStarted": "Tracking started successfully.",
+    "trackingError": "Error starting tracking. Please try again.",
+    "chooseLanguage": "Choose Language",
+    "changeLanguage": "Change Language",
+    "embassyInfo": "Embassy Information",
+    "policeStation": "Police Station",
+    "fireServices": "Fire Services",
+    "hospital": "Hospital"
+  }
+  

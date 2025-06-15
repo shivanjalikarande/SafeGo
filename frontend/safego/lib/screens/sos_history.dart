@@ -24,7 +24,7 @@ class _SOSHistoryPageState extends State<SOSHistoryPage> {
 
   Future<void> fetchSOSHistory() async {
     final response = await http.get(
-      Uri.parse('http://192.168.58.129:5000/sos/${widget.userId}'),
+      Uri.parse('http://192.168.221.129:5000/sos/${widget.userId}'),
     );
 
     if (response.statusCode == 200) {

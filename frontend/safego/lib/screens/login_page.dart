@@ -28,7 +28,7 @@ class LoginPage extends StatelessWidget {
                 // 1. Check user existence in DB
                 final response = await http.post(
                   Uri.parse(
-                    'http://192.168.58.129:5000/auth/check-user',
+                    'http://192.168.221.129:5000/auth/check-user',
                   ), //if using emulator, otherwise use <localhost>
                   headers: {'Content-Type': 'application/json'},
                   body: jsonEncode({'email': email}),
