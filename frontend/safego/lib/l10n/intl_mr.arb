@@ -1,0 +1,19 @@
+{
+    "title": "SafeGo",
+    "emergency": "आपत्काल",
+    "contactSupport": "सहायता कनेक्ट करा",
+    "sosMessage": "तुमचा SOS संदेश पाठवला गेला आहे.",
+    "startTracking": "ट्रॅकिंग सुरू करा",
+    "locationAccess": "वास्तविक-समय ट्रॅकिंगसाठी तुमच्या स्थानाचा प्रवेश आवश्यक आहे.",
+    "alert": "इशारा",
+    "sendSOS": "SOS पाठवा",
+    "trackingStarted": "ट्रॅकिंग यशस्वीरित्या सुरू झाले आहे.",
+    "trackingError": "ट्रॅकिंग सुरू करण्यात चूक. कृपया पुन्हा प्रयत्न करा.",
+    "chooseLanguage": "भाषा निवडा",
+    "changeLanguage": "भाषा बदल",
+    "embassyInfo": "दूतावास माहिती",
+    "policeStation": "पोलिस स्टेशन",
+    "fireServices": "आग सेवा",
+    "hospital": "रुग्णालय"
+  }
+  

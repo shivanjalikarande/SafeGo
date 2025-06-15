@@ -40,7 +40,7 @@ class _UserProfilePageState extends State<UserProfilePage> {
     if (user == null) return;
 
     final response = await http.get(
-      Uri.parse('http://192.168.58.129:5000/profile/${user.id}'),
+      Uri.parse('http://192.168.221.129:5000/profile/${user.id}'),
     );
 
     if (response.statusCode == 200) {
@@ -114,7 +114,7 @@ class _UserProfilePageState extends State<UserProfilePage> {
 
       // ✅ Optionally update your backend
       await http.post(
-        Uri.parse('http://192.168.58.129:5000/profile/update-image'),
+        Uri.parse('http://192.168.221.129:5000/profile/update-image'),
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode({'user_id': user.id, 'profile_picture': publicUrl}),
       );
@@ -144,7 +144,7 @@ class _UserProfilePageState extends State<UserProfilePage> {
     if (user == null) return;
 
     final response = await http.get(
-      Uri.parse('http://192.168.58.129:5000/contacts/${user.id}'),
+      Uri.parse('http://192.168.221.129:5000/contacts/${user.id}'),
     );
 
     if (response.statusCode == 200) {
@@ -180,7 +180,7 @@ class _UserProfilePageState extends State<UserProfilePage> {
 
     if (shouldDelete == true) {
       final response = await http.delete(
-        Uri.parse('http://192.168.58.129:5000/contacts/delete/$contactId'),
+        Uri.parse('http://192.168.221.129:5000/contacts/delete/$contactId'),
       );
 
       if (response.statusCode == 200) {
@@ -222,7 +222,7 @@ class _UserProfilePageState extends State<UserProfilePage> {
     updatedFields['id'] = user.id;
 
     final response = await http.post(
-      Uri.parse('http://192.168.58.129:5000/profile/update'),
+      Uri.parse('http://192.168.221.129:5000/profile/update'),
       headers: {'Content-Type': 'application/json'},
       body: jsonEncode(updatedFields),
     );

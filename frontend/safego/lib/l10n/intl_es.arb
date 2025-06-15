@@ -1,0 +1,18 @@
+{
+  "title": "SafeGo",
+  "emergency": "Emergencia",
+  "contactSupport": "Contactar con soporte",
+  "sosMessage": "Tu mensaje SOS ha sido enviado.",
+  "startTracking": "Iniciar seguimiento",
+  "locationAccess": "Necesitamos acceso a tu ubicación para el seguimiento en tiempo real.",
+  "alert": "Alerta",
+  "sendSOS": "Enviar SOS",
+  "trackingStarted": "El seguimiento comenzó con éxito.",
+  "trackingError": "Error al iniciar el seguimiento. Por favor, inténtalo de nuevo.",
+  "chooseLanguage": "Elige el idioma",
+  "changeLanguage": "Cambiar idioma",
+  "embassyInfo": "Información de la embajada",
+  "policeStation": "Estación de policía",
+  "fireServices": "Servicios de bomberos",
+  "hospital": "Hospital"
+}
