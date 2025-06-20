@@ -40,9 +40,11 @@ SafeGo is a smart emergency assistance application designed to protect travelers
 
 ---
 
-## 📱 Demo Screenshots
-> *(Insert screenshots or Figma mockups here if available)*
-![image](https://github.com/user-attachments/assets/0e3a3e14-a3fd-4c32-bbe7-53f3bcbd63b6)
+## 📱 Screenshots
+![image](https://github.com/user-attachments/assets/c70997cd-25cd-4ad3-a52e-5193d03d94f9)
+![image](https://github.com/user-attachments/assets/8db06f09-0958-4e91-99ae-3b7925ad2ffa)
+![image](https://github.com/user-attachments/assets/1d20090f-e853-43fe-b2d7-d6d068323b72)
+![image](https://github.com/user-attachments/assets/88860abc-444c-4072-a612-380a336dd40c)
 
 
 
