@@ -6,6 +6,14 @@
 
 ---
 
+## 📖 Project Description
+
+**SafeGo** is an emergency safety and responsiveness tracking app specifically designed for travelers, especially those visiting unfamiliar regions or countries. The app ensures that users are never truly alone during emergencies by leveraging real-time location tracking, local emergency services data, and personalized SOS alerts. Users can configure automatic "Are you safe?" alerts at custom intervals to check in on their safety—if unresponsive, the app logs the incident as an alert and can notify saved trusted contacts.
+
+Built with a focus on simplicity and reliability, SafeGo eliminates the need for manual help-seeking during critical moments by automating emergency responses like sending location-based SMS alerts. It also helps users stay connected by maintaining a directory of local emergency services based on their country and location. With passwordless login via Supabase, minimal setup, and robust background services, SafeGo offers a practical, real-world solution to the increasing need for safety tools during travel or solo commutes. It aims to bring peace of mind to users and their families by ensuring help is just a click—or lack of response—away.
+
+---
+
 ## 🚀 Core Features
 
 ### 🔒 1. Passwordless Authentication
