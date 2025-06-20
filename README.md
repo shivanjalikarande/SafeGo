@@ -18,7 +18,6 @@
   - 🚓 Police
   - 🚒 Fire Station
   - 🚑 Ambulance
-  - 🏛️ Indian Embassy (if abroad)
 
 ### 👥 3. Emergency Contact Directory by Region
 - Automatically fetches and displays **regional emergency services** based on location.
@@ -50,11 +49,17 @@
 
 ---
 
-## 🖼️ Screenshots
+## 📱 Screenshots
 
-| SOS Trigger | Alert Prompt | Emergency Directory | Check-In Settings |
-|------------|---------------|---------------------|-------------------|
-| ![sos](https://github.com/user-attachments/assets/c70997cd-25cd-4ad3-a52e-5193d03d94f9) | ![alert](https://github.com/user-attachments/assets/8db06f09-0958-4e91-99ae-3b7925ad2ffa) | ![directory](https://github.com/user-attachments/assets/1d20090f-e853-43fe-b2d7-d6d068323b72) | ![settings](https://github.com/user-attachments/assets/88860abc-444c-4072-a612-380a336dd40c) |
+<p float="left">
+  <img src="https://github.com/user-attachments/assets/c70997cd-25cd-4ad3-a52e-5193d03d94f9" width="45%" />
+  <img src="https://github.com/user-attachments/assets/8db06f09-0958-4e91-99ae-3b7925ad2ffa" width="45%" />
+</p>
+
+<p float="left">
+  <img src="https://github.com/user-attachments/assets/1d20090f-e853-43fe-b2d7-d6d068323b72" width="45%" />
+  <img src="https://github.com/user-attachments/assets/88860abc-444c-4072-a612-380a336dd40c" width="45%" />
+</p>
 
 ---
 
@@ -76,13 +81,16 @@
 ## 🧠 How It Works
 
 1. On login, user is authenticated using **Supabase email magic link**.
-2. **Live GPS** fetches the user's location and country.
-3. Emergency services and embassy details are displayed accordingly.
-4. **User can send an SOS** or receive periodic “Are you safe?” alerts.
-5. If user doesn’t respond within 2 minutes:
+2. **Live GPS** fetches the user's location and current country.
+3. User can **maintain a profile** by adding **family or trusted contacts**.
+   - In case of emergency, **automatic SMS alerts** are sent to these saved contacts.
+4. Nearby **emergency services** (police, ambulance, fire) are displayed based on location.
+5. User can send a **manual SOS** or receive periodic **“Are you safe?”** alert prompts.
+6. If user doesn’t respond within 2 minutes:
    - An **auto SOS** is triggered.
-   - An "Unresponsive" alert is logged.
-6. Alert history is maintained for review and tracking.
+   - An **"Unresponsive" alert** is logged with yellow severity.
+7. **Alert history** is maintained for review and safety tracking.
+
 
 ---
 
@@ -94,13 +102,53 @@
 
 ---
 
-## 🔧 Development Notes (Backend setup used during testing)
+## 🔧 Development Setup
 
-While the core system runs in Flutter with Supabase, Node.js scripts were used during testing for:
-- Location fetching mock
-- SOS testing
-- Email triggers via Gmail SMTP
+### 📱 Frontend (Flutter App)
 
+#### Requirements:
+- Flutter SDK (≥ 3.7.0)
+- Dart SDK
+- Android Studio or Visual Studio Code (with Flutter plugin)
+- Android Emulator or physical device
+
+#### Installation:
+```bash
+flutter pub get
+flutter run
+
+npm install @supabase/supabase-js express cors body-parser
+
+### 🌐 Backend Setup (Optional for Testing)
+
+> Supabase handles most backend operations (auth, DB). This backend is optional for additional tasks like email/SMS alerts or testing.
+
+#### 🛠 Requirements:
+- Node.js (v18+ recommended)
+- Supabase project (with API keys)
+- Gmail SMTP / Email service (for testing)
+
+#### 📦 Installation Commands:
 ```bash
 npm install node-fetch node-cron dotenv
-npm install @supabase/supabase-js express cors body-parser
+npm install @supabase/supabase-js express cors body-parser nodemailer
+
+
+#### 📦 Flutter Packages Used
+
+- `supabase` – Passwordless auth, DB operations
+- `flutter_local_notifications` – Alert popups
+- `workmanager` – Background task execution
+- `geolocator` & `geocoding` – Live location and address
+- `permission_handler` – Location/SMS permission handling
+- `flutter_secure_storage` – Store session/token securely
+- `shared_preferences` – Store user toggles/settings
+- `http` – API requests
+- `intl` – Date/time formatting
+- `path`, `path_provider` – File operations
+- `url_launcher` – Open Google Maps links or dial numbers
+- `jwt_decoder` – Supabase token decoding
+- `telephony` – Send SMS (for Android devices)
+- `image_picker` – Select profile images (if used)
+- `mime` – File type handling
+
