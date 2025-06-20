@@ -133,7 +133,7 @@ npm install @supabase/supabase-js express cors body-parser
 ```bash
 npm install node-fetch node-cron dotenv
 npm install @supabase/supabase-js express cors body-parser nodemailer
-
+```
 
 #### 📦 Flutter Packages Used
 
