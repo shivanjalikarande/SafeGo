@@ -116,10 +116,11 @@
 ```bash
 flutter pub get
 flutter run
+```
 
 npm install @supabase/supabase-js express cors body-parser
 
-### 🌐 Backend Setup (Optional for Testing)
+### 🌐 Backend Setup
 
 > Supabase handles most backend operations (auth, DB). This backend is optional for additional tasks like email/SMS alerts or testing.
 
